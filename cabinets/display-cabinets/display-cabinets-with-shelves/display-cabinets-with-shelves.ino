@@ -12,6 +12,20 @@
 
 #include <Adafruit_NeoPixel.h>
 
+class CabConfig{
+  private :
+  uint16_t _nPixels;
+  uint16_t _pin;
+  Adafruit_NeoPixel _strip;
+
+  public :
+  CabConfig(uint16_t nPixels,uint16_t pin) : _nPixels(nPixels),_pin(pin),_strip(_nPixels,_pin,NEO_GRB+NEO_KHZ800){
+  }
+  Adafruit_NeoPixel strip(){
+    return _strip;
+  }
+};
+
 // Which pin on the Arduino is connected to the NeoPixels?
 #define LED_PIN    6
 
@@ -19,7 +33,33 @@
 #define LED_COUNT 60
 
 // Declare our NeoPixel strip object:
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+CabConfig cabs[2] = {*(new CabConfig(60,6)),*(new CabConfig(60,7))};
+
+class Controller{
+  private:
+  uint16_t _nCabs;
+  CabConfig* _cabs;
+  
+  public:
+  Controller(uint16_t nCabs, CabConfig* cabs):_nCabs(nCabs),_cabs(cabs){ 
+  }
+  void clear(){
+    for(int16_t i=0;i<_nCabs;++i){
+      _cabs[i].strip().clear();
+    }
+  }
+  void show(){
+    for(int16_t i=0;i<_nCabs;++i){
+      _cabs[i].strip().show();
+    }
+  }
+};
+
+Controller* cntr = new Controller(2,cabs);
+ 
+//Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+//Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 // Argument 1 = Number of pixels in NeoPixel strip
 // Argument 2 = Arduino pin number (most are valid)
 // Argument 3 = Pixel type flags, add together as needed:
@@ -113,7 +153,7 @@ void theaterChaseRainbow(int wait) {
   int firstPixelHue = 0;     // First pixel starts at red (hue 0)
   for(int a=0; a<30; a++) {  // Repeat 30 times...
     for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
-      strip.clear();         //   Set all pixels in RAM to 0 (off)
+      cntr.clear();         //   Set all pixels in RAM to 0 (off)
       // 'c' counts up from 'b' to end of strip in increments of 3...
       for(int c=b; c<strip.numPixels(); c += 3) {
         // hue of pixel 'c' is offset by an amount to make one full
@@ -123,7 +163,7 @@ void theaterChaseRainbow(int wait) {
         uint32_t color = strip.gamma32(strip.ColorHSV(hue)); // hue -> RGB
         strip.setPixelColor(c, color); // Set pixel 'c' to value 'color'
       }
-      strip.show();                // Update strip with new contents
+      cntr.show();                // Update strip with new contents
       delay(wait);                 // Pause for a moment
       firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
     }
