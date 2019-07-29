@@ -56,7 +56,6 @@ void loop() {
   theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
 }
 
-
 // Some functions of our own for creating animated effects -----------------
 
 // Fill strip pixels one after another with a color. Strip is NOT cleared
