@@ -14,12 +14,12 @@
 
 class CabConfig{
   private :
-  uint16_t _nPixels;
-  uint16_t _pin;
+  //uint16_t _nPixels;
+  //uint16_t _pin;
   Adafruit_NeoPixel _strip;
 
   public :
-  CabConfig(uint16_t nPixels,uint16_t pin) : _nPixels(nPixels),_pin(pin),_strip(_nPixels,_pin,NEO_GRB+NEO_KHZ800){
+  CabConfig(uint16_t nPixels,uint16_t pin) : _strip(nPixels,pin,NEO_GRB+NEO_KHZ800){
   }
   Adafruit_NeoPixel strip(){
     return _strip;
@@ -42,6 +42,12 @@ class Controller{
   
   public:
   Controller(uint16_t nCabs, CabConfig* cabs):_nCabs(nCabs),_cabs(cabs){ 
+  }
+  uint16_t nCabs(){
+     return _nCabs;
+  }
+  CabConfig* cabs(){
+    return _cabs;
   }
   void clear(){
     for(int16_t i=0;i<_nCabs;++i){
@@ -155,7 +161,10 @@ void theaterChaseRainbow(int wait) {
     for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
       cntr.clear();         //   Set all pixels in RAM to 0 (off)
       // 'c' counts up from 'b' to end of strip in increments of 3...
-      for(int c=b; c<strip.numPixels(); c += 3) {
+      for(uint16_t i=0; i<cntr.nCabs(); ++i){
+        CabConfig cab = cntr.cabs()[i];
+        Adafruit_NeoPixel strip = cab.strip();  
+        for(int c=b; c<strip().numPixels(); c += 3) {
         // hue of pixel 'c' is offset by an amount to make one full
         // revolution of the color wheel (range 65536) along the length
         // of the strip (strip.numPixels() steps):
@@ -163,9 +172,9 @@ void theaterChaseRainbow(int wait) {
         uint32_t color = strip.gamma32(strip.ColorHSV(hue)); // hue -> RGB
         strip.setPixelColor(c, color); // Set pixel 'c' to value 'color'
       }
-      cntr.show();                // Update strip with new contents
-      delay(wait);                 // Pause for a moment
-      firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
     }
+    cntr.show();                // Update strip with new contents
+    delay(wait);                 // Pause for a moment
+    firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
   }
 }
