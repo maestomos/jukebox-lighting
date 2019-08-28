@@ -102,20 +102,20 @@ class CabConfig{
     testshelves(_strip->Color(0,255,0));    
     testshelves(_strip->Color(0,0,255));    
   }
-  void testshelves(uint32_t c){
-    int16_t offset=0;
-    for(int i=0;i<_nShelves;++i){
-      const int16_t s=_shelfSizes[i];
+  void setShelfPixels(uint32_t c,uint16_t offset,uint16_t s){
       for(int j=0;j<s;++j){
         _strip->setPixelColor(offset+j,c);
         _strip->setPixelColor(_strip->numPixels()-1-offset-j,c);
       }
+  }
+  void testshelves(uint32_t c){
+    int16_t offset=0;
+    for(int i=0;i<_nShelves;++i){
+      const int16_t s=_shelfSizes[i];
+      setShelfPixels(c,offset,s);
       _strip->show();
       delay(2000);
-      for(int j=0;j<s;++j){
-        _strip->setPixelColor(offset+j,0);
-        _strip->setPixelColor(_strip->numPixels()-1-offset-j,0);
-      }
+      setShelfPixels(0,offset,s);
       _strip->show();
       offset+=s;
     }
