@@ -58,6 +58,19 @@ class CabConfigData{
 
 CabConfigData* cabConfigData[2];
 
+class RGB{
+  public:
+  uint8_t _r,_g,_b;
+  public:
+  RGB(uint8_t r,uint8_t g,uint8_t b):_r(r),_g(g),_b(b){    
+  }
+  uint32_t color(Adafruit_NeoPixel* strip) const{return strip->Color(_r,_g,_b);}
+};
+
+static const uint16_t NUM_SHELVES=6;
+static const uint16_t NUM_COLORS=5;
+static const RGB COLORS[NUM_COLORS]={RGB(255,0,0),RGB(0,255,0),RGB(200,150,190),RGB(25,140,240),RGB(160,90,140)};
+
 class CabConfig{
   private:
   uint16_t _nShelves;
@@ -120,9 +133,9 @@ class CabConfig{
       LEAVE
   }
   void testshelves(){
-    testshelves(_strip->Color(255,0,0));    
-    testshelves(_strip->Color(0,255,0));    
-    testshelves(_strip->Color(0,0,255));    
+    for(int i=0;i<NUM_COLORS;++i){
+      testshelves(COLORS[i].color(_strip));
+    }
   }
   void testshelves(uint32_t c){
     int16_t offset=0;
@@ -135,9 +148,9 @@ class CabConfig{
   }
   void teststrand(){    
     ENTER("testinsequence");
-    teststrand(_strip->Color(255,0,0));
-    teststrand(_strip->Color(0,255,0));
-    teststrand(_strip->Color(0,0,255));
+    for(int i=0;i<NUM_COLORS;++i){
+      teststrand(COLORS[i].color(_strip));
+    }
     LEAVE
   }
   void teststrand(uint32_t c){
@@ -147,23 +160,13 @@ class CabConfig{
         PRINT2("i=",i);
         _strip->setPixelColor(i,c);
         _strip->show();
-        delay(100);
+        delay(50);
         _strip->setPixelColor(i,_strip->Color(0,0,0));
         _strip->show();
       }
     }
     LEAVE
   }
-};
-
-
-class RGB{
-  public:
-  uint8_t _r,_g,_b;
-  public:
-  RGB(uint8_t r,uint8_t g,uint8_t b):_r(r),_g(g),_b(b){    
-  }
-  uint32_t color(Adafruit_NeoPixel* strip){return strip->Color(_r,_g,_b);}
 };
 
 class Controller{
@@ -173,9 +176,6 @@ class Controller{
   uint16_t _nextShelf;
   uint16_t _nextColor;
 
-  static const uint16_t NUM_COLORS=3;
-  static const uint16_t NUM_SHELVES=6;
-  const RGB colors[NUM_COLORS]={RGB(255,0,0),RGB(0,255,0),RGB(200,150,190)};
   void clear(){
     for(int16_t i=0;i<_nCabs;++i){
       _cabs[i]->strip()->clear();
@@ -223,9 +223,9 @@ class Controller{
     ENTER("illuminateNextShelf")
     PRINT2("_nextColor=",_nextColor);
     PRINT2("_nextShelf=",_nextShelf);
-    fadeIn(colors[_nextColor]);
-    delay(2000);
-    fadeOut(colors[_nextColor]);
+    fadeIn(COLORS[_nextColor]);
+    delay(10000);
+    fadeOut(COLORS[_nextColor]);
     _nextShelf++;
     if(_nextShelf%NUM_SHELVES==0){
       _nextColor++;
