@@ -12,7 +12,7 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#define DEBUG 1
+//#define DEBUG 1
 #ifndef DEBUG
   #define DEBUG_SETUP
   #define ENTER(f)
@@ -27,9 +27,9 @@
   uint16_t DEBUG_STACK_PTR=0;
   #define DEBUG_SETUP Serial.begin(9600);Serial.print("DEBUG Setup:");Serial.println("Complete");
   #define ENTER(f) Serial.println((String("Enter:")+f).c_str());DEBUG_STACK[DEBUG_STACK_PTR++]=String(f);
-  #define PRINT1(v1) Serial.println(DEBUG_STACK[DEBUG_STACK_POINTER]+":"+v1);
-  #define PRINT2(v1,v2) Serial.println((DEBUG_STACK[DEBUG_STACK_PTR]+":"+v1+v2).c_str());
-  #define PRINT3(v1,v2,v3) Serial.println(DEBUG_STACK[DEBUG_STACK_PTR]+":"+v1+v2+v3);
+  #define PRINT1(v1) Serial.println(DEBUG_STACK[DEBUG_STACK_PTR-1]+":"+v1);
+  #define PRINT2(v1,v2) Serial.println((DEBUG_STACK[DEBUG_STACK_PTR-1]+":"+v1+v2).c_str());
+  #define PRINT3(v1,v2,v3) Serial.println(DEBUG_STACK[DEBUG_STACK_PTR-1]+":"+v1+v2+v3);
   #define LEAVE Serial.println((String("Leave:")+DEBUG_STACK[--DEBUG_STACK_PTR]).c_str());
   #define RETURN(v1,v2) Serial.println(DEBUG_STACK[--DEBUG_STACK_PTR]+":Return="+v1);return v2;
 #endif
@@ -41,7 +41,7 @@ class CabConfigData{
   uint16_t _nPixels;
   uint16_t _nShelves;
   uint16_t* _shelfSizes;
-  
+    
   CabConfigData(uint16_t pin,uint16_t nShelves,uint16_t* shelfSizes) :
                                         _pin(pin),
                                         _nPixels(0),
@@ -50,7 +50,7 @@ class CabConfigData{
     ENTER("CabConfigData")
     _nPixels=0;
     for(uint16_t i=0; i<_nShelves; ++i){
-      _nPixels += 2*_shelfSizes[i];                                    
+      _nPixels += 2*_shelfSizes[i];
     }
     LEAVE
   }
@@ -96,27 +96,40 @@ class CabConfig{
     testshelves();
     LEAVE
   }
+  uint16_t nShelves(){
+    return _nShelves;
+  }
+  void setShelfPixels(uint32_t c,uint16_t n){
+      setPixels(c,toOffset(n),_shelfSizes[n],false,0);
+  }
   private:
+  uint16_t toOffset(uint16_t n){
+    uint16_t offset=0;
+    for(uint16_t i=0;i<n;++i) offset+=_shelfSizes[i];
+    return offset;
+  }
+  void setPixels(uint32_t c,uint16_t offset, uint16_t s, boolean show,uint32_t wait){
+      ENTER("setPixels")
+      PRINT2("show=",show)
+      for(int j=0;j<s;++j){
+        _strip->setPixelColor(offset+j,c);
+        _strip->setPixelColor(_strip->numPixels()-1-offset-j,c);
+      }
+      if(show)_strip->show();
+      delay(wait);
+      LEAVE
+  }
   void testshelves(){
     testshelves(_strip->Color(255,0,0));    
     testshelves(_strip->Color(0,255,0));    
     testshelves(_strip->Color(0,0,255));    
   }
-  void setShelfPixels(uint32_t c,uint16_t offset,uint16_t s){
-      for(int j=0;j<s;++j){
-        _strip->setPixelColor(offset+j,c);
-        _strip->setPixelColor(_strip->numPixels()-1-offset-j,c);
-      }
-  }
   void testshelves(uint32_t c){
     int16_t offset=0;
     for(int i=0;i<_nShelves;++i){
       const int16_t s=_shelfSizes[i];
-      setShelfPixels(c,offset,s);
-      _strip->show();
-      delay(2000);
-      setShelfPixels(0,offset,s);
-      _strip->show();
+      setPixels(c,offset,s,true,500);
+      setPixels(0,offset,s,true,0);
       offset+=s;
     }
   }
@@ -144,10 +157,25 @@ class CabConfig{
 };
 
 
+class RGB{
+  public:
+  uint8_t _r,_g,_b;
+  public:
+  RGB(uint8_t r,uint8_t g,uint8_t b):_r(r),_g(g),_b(b){    
+  }
+  uint32_t color(Adafruit_NeoPixel* strip){return strip->Color(_r,_g,_b);}
+};
+
 class Controller{
   private:
   uint16_t _nCabs;
   CabConfig** _cabs;
+  uint16_t _nextShelf;
+  uint16_t _nextColor;
+
+  static const uint16_t NUM_COLORS=3;
+  static const uint16_t NUM_SHELVES=6;
+  const RGB colors[NUM_COLORS]={RGB(255,0,0),RGB(0,255,0),RGB(200,150,190)};
   void clear(){
     for(int16_t i=0;i<_nCabs;++i){
       _cabs[i]->strip()->clear();
@@ -158,29 +186,54 @@ class Controller{
       _cabs[i]->strip()->show();
     }
   }
-  /*void setAllPixels(int32_t r, int32_t g, int32_t b) {
-    for(uint16_t i=0; i<_nCabs; ++i){
-      Adafruit_NeoPixel strip = _cabs[i]->strip();  
-      for(int i=0; i<strip.numPixels(); i++) {
-        strip.setPixelColor(i, strip.Color(r,g,b));
-      }
-    }
-    show();
-  }*/
   
   public:
-  Controller(uint16_t nCabs, CabConfigData** cabConfigData) : _nCabs(nCabs),_cabs(new CabConfig*[nCabs]){
+  Controller(uint16_t nCabs, CabConfigData** cabConfigData) :
+                          _nCabs(nCabs),_cabs(new CabConfig*[nCabs]),_nextShelf(0),_nextColor(0){
     ENTER("Controller")
     for(int i=0; i<_nCabs; ++i){
       _cabs[i] = new CabConfig(cabConfigData[i]);
     }
     LEAVE
   }
-  void illuminateNextShelf(){
-    for(int i=0;i<_nCabs;++i){
-      CabConfig* cab = _cabs[i];
-      //cab
+  private:
+  void setPixels(uint8_t r,uint8_t g,uint8_t b){
+      for(int i=0;i<_nCabs;++i){
+        _cabs[i]->setShelfPixels(_cabs[i]->strip()->Color(r,g,b),_nextShelf%_cabs[i]->nShelves());
+      }    
+  }
+  void fadeIn(RGB rgb){
+    for(int i=15;i>=1;--i){
+      setPixels(rgb._r/i,rgb._g/i,rgb._b/i);
+      show();
+      delay(100);
     }
+  }
+  void fadeOut(RGB rgb){
+    for(int i=1;i<=15;++i){
+      setPixels(rgb._r/i,rgb._g/i,rgb._b/i);
+      show();
+      delay(100);
+    }
+    setPixels(0,0,0);
+    show();
+  }
+  public:
+  void illuminateNextShelf(){
+    ENTER("illuminateNextShelf")
+    PRINT2("_nextColor=",_nextColor);
+    PRINT2("_nextShelf=",_nextShelf);
+    fadeIn(colors[_nextColor]);
+    delay(2000);
+    fadeOut(colors[_nextColor]);
+    _nextShelf++;
+    if(_nextShelf%NUM_SHELVES==0){
+      _nextColor++;
+      if(_nextColor%NUM_COLORS==0){
+        _nextColor=0;
+      }
+    }
+    LEAVE
   }
   void test(){
     for(uint16_t i=0;i<_nCabs;++i){
@@ -189,10 +242,7 @@ class Controller{
   }
   void init(){
     for(uint16_t i=0; i<_nCabs; ++i){
-      _cabs[i]->init();  
-      //Adafruit_NeoPixel* strip = _cabs[i]->strip();  
-      //strip->begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-      //strip->show();            // Turn OFF all pixels ASAP
+      _cabs[i]->init();
     }
   }
 };
@@ -204,8 +254,8 @@ Controller* cntr;
 void setup() {
   DEBUG_SETUP
   ENTER("setup")
-  cabConfigData[0] = new CabConfigData(7,2,new uint16_t[2]{4,3});
-  //cabConfigData[1] = new CabConfigData(8,2,new uint16_t[2]{3,4});
+  cabConfigData[0] = new CabConfigData(7,NUM_SHELVES,new uint16_t[NUM_SHELVES]{5,7,8,10,8,6});
+  //cabConfigData[1] = new CabConfigData(8,6,new uint16_t[2]{3,4});
   cntr = new Controller(1,cabConfigData);
   cntr->init();
   cntr->test();
@@ -216,9 +266,9 @@ void setup() {
 // loop() function -- runs repeatedly as long as board is on ---------------
 
 void loop() {
-  //ENTER("loop");
+  ENTER("loop");
   cntr->illuminateNextShelf();
-  //LEAVE
+  LEAVE
 }
 
 /*
