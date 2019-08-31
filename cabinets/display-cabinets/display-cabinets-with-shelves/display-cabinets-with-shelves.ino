@@ -56,8 +56,6 @@ class CabConfigData{
   }
 };
 
-CabConfigData* cabConfigData[2];
-
 class RGB{
   public:
   uint8_t _r,_g,_b;
@@ -68,8 +66,10 @@ class RGB{
 };
 
 static const uint16_t NUM_SHELVES=6;
+static const uint16_t NUM_CABINETS=2;
 static const uint16_t NUM_COLORS=5;
 static const RGB COLORS[NUM_COLORS]={RGB(255,0,0),RGB(0,255,0),RGB(200,150,190),RGB(25,140,240),RGB(160,90,140)};
+CabConfigData* cabConfigData[NUM_CABINETS];
 
 class CabConfig{
   private:
@@ -255,8 +255,8 @@ void setup() {
   DEBUG_SETUP
   ENTER("setup")
   cabConfigData[0] = new CabConfigData(7,NUM_SHELVES,new uint16_t[NUM_SHELVES]{5,7,8,10,8,6});
-  //cabConfigData[1] = new CabConfigData(8,6,new uint16_t[2]{3,4});
-  cntr = new Controller(1,cabConfigData);
+  cabConfigData[1] = new CabConfigData(8,NUM_SHELVES,new uint16_t[NUM_SHELVES]{7,8,7,8,8,6});
+  cntr = new Controller(NUM_CABINETS,cabConfigData);
   cntr->init();
   cntr->test();
   LEAVE
