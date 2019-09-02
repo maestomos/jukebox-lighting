@@ -12,17 +12,53 @@
 
 #include <Adafruit_NeoPixel.h>
 
+
+#define DEBUG 1
+#ifndef DEBUG
+  #define ENTER(f)
+  #define PRINT(v)
+  #define LEAVE
+  #define RETURN(v1,v2) return v2;
+#else
+  class DEBUG_TRACER{
+    private:
+    String _stack[50];
+    uint16_t _sptr=0;
+    public:
+    DEBUG_TRACER() : _sptr(0){
+      Serial.begin(9600);
+      Serial.println("DEBUG Setup Complete");
+    }
+    void enter( String f){
+        Serial.println((String("Enter:")+f).c_str());
+        _stack[_sptr++]=f;
+    }
+    void leave(){
+      Serial.println((String("Leave:")+_stack[--_sptr]).c_str());      
+    }
+    void print(char* v){      
+      Serial.println(_stack[_sptr-1]+":"+v);
+    }
+    void rleave(char* v){
+      Serial.println((String("Return:")+_stack[--_sptr]+":"+v).c_str());      
+    }
+  };
+  DEBUG_TRACER debugTracer();
+  #define ENTER(f) debugTracer.enter(f);
+  #define PRINT(v) debugTracer.print(v);
+  #define LEAVE debugTracer.leave();
+  #define RETURN(v1,v2) debugTracer.rleave(v1); return v2;
+#endif
+
+
 // Which pin on the Arduino is connected to the NeoPixels?
-#define LED_PIN    6
+#define LED_PIN    7
 
 // How many NeoPixels are attached to the Arduino?
 #define LED_COUNT 60
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-// Argument 1 = Number of pixels in NeoPixel strip
-// Argument 2 = Arduino pin number (most are valid)
-// Argument 3 = Pixel type flags, add together as needed:
 
 
 // setup() function -- runs once at startup --------------------------------

@@ -239,6 +239,7 @@ class Controller{
       illuminate(0,0,0,0);
       _nextShelf--;
     }
+      _nextShelf++; // Ensures that _nexShelf%NUM_SHELVES==0
   }
   void illuminateNextShelf(){
     ENTER("illuminateNextShelf")
