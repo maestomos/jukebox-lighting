@@ -67,7 +67,7 @@ class RGB{
 
 static const uint16_t NUM_SHELVES=6;
 static const uint16_t NUM_CABINETS=2;
-static const uint16_t NUM_COLORS=10;
+static const uint16_t NUM_COLORS=11;
 static const RGB COLORS[NUM_COLORS]={
                                 RGB(255,0,0),
                                 RGB(0,255,0),
@@ -78,6 +78,7 @@ static const RGB COLORS[NUM_COLORS]={
                                 RGB(200,150,190),
                                 RGB(40,170,240),
                                 RGB(90,140,230),
+                                RGB(50,220,190),
                                 RGB(150,90,160)};
 CabConfigData* cabConfigData[NUM_CABINETS];
 
@@ -164,7 +165,7 @@ class CabConfig{
         PRINT2("i=",i);
         _strip->setPixelColor(i,c);
         _strip->show();
-        delay(10);
+        delay(6);
         _strip->setPixelColor(i,_strip->Color(0,0,0));
         _strip->show();
       }
@@ -227,11 +228,16 @@ class Controller{
   void illuminateAllShelvesInSequence()
   {
     const RGB rgb=COLORS[_nextColor];
-    //for(int i=_nextShelf;i<_nextShelf+NUM_SHELVES;++i){
     for(int i=0;i<NUM_SHELVES;++i){
       illuminate(rgb._r,rgb._g,rgb._b,500);
       illuminate(0,0,0,0);
       _nextShelf++;
+    }
+    _nextShelf-=2;
+    for(int i=0;i<NUM_SHELVES-1;++i){
+      illuminate(rgb._r,rgb._g,rgb._b,500);
+      illuminate(0,0,0,0);
+      _nextShelf--;
     }
   }
   void illuminateNextShelf(){
@@ -239,7 +245,7 @@ class Controller{
     PRINT2("_nextColor=",_nextColor);
     PRINT2("_nextShelf=",_nextShelf);
     fadeIn();
-    delay(10000);
+    delay(12000);
     fadeOut();
     _nextShelf++;
     if(_nextShelf%NUM_SHELVES==0){
